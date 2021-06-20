@@ -26,7 +26,7 @@ class FragmentResult : Fragment() {
     override fun onAttach(context: Context) {
 
         if (context is FragmentResultAction) {
-            actionCallBack=context as FragmentResultAction
+            actionCallBack=context
         }else {
             throw RuntimeException("$context must implement FragmentResult.FragmentResultAction")
         }

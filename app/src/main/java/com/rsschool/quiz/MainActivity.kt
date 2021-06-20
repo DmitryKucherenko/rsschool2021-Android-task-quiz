@@ -1,14 +1,10 @@
 package com.rsschool.quiz
 
 import android.app.AlertDialog
-import android.app.Dialog
-import android.content.DialogInterface
 import android.content.Intent
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
-import androidx.activity.OnBackPressedCallback
 import androidx.core.os.bundleOf
-import androidx.fragment.app.DialogFragment
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentActivity
 import androidx.viewpager2.adapter.FragmentStateAdapter
@@ -18,6 +14,8 @@ import com.rsschool.question.QuestionsBase
 import com.rsschool.quiz.databinding.ActivityMainBinding
 import java.lang.IllegalArgumentException
 import java.lang.StringBuilder
+import kotlin.system.exitProcess
+
 //Использую viewPager2
 class MainActivity : AppCompatActivity(),FragmentQuiz.FragmentAction,FragmentResult.FragmentResultAction{
     private lateinit var binding:ActivityMainBinding
@@ -41,12 +39,12 @@ class MainActivity : AppCompatActivity(),FragmentQuiz.FragmentAction,FragmentRes
 
         viewPager.registerOnPageChangeCallback(object:ViewPager2.OnPageChangeCallback(){
             override fun onPageSelected(position: Int) {
-                changeStatusBarColor( fragmentList[position],position)
+                changeStatusBarColor( position)
                 super.onPageSelected(position)
             }
         })
 
-        resultAnswers= arrayOf<Pair<String,Int>>("" to 0,"" to 0,"" to 0,"" to 0,"" to 0)
+        resultAnswers= arrayOf("" to 0,"" to 0,"" to 0,"" to 0,"" to 0)
 
     }
 //Логика нажатия системной кнопки back
@@ -54,11 +52,11 @@ class MainActivity : AppCompatActivity(),FragmentQuiz.FragmentAction,FragmentRes
     //присваиваем переменной функцию с диалогом
         val exitDialog= AlertDialog.Builder(this)
             .setMessage("Do your want out from quiz?")
-            .setPositiveButton(android.R.string.ok) { dialog, whichButton ->
-                finish();
-                System.exit(0);
+            .setPositiveButton(android.R.string.ok) { _, _ ->
+                finish()
+                exitProcess(0)
             }
-            .setNegativeButton(android.R.string.cancel) { dialog, whichButton ->
+            .setNegativeButton(android.R.string.cancel) { _, _ ->
             }
 
         when(viewPager.currentItem){
@@ -66,13 +64,11 @@ class MainActivity : AppCompatActivity(),FragmentQuiz.FragmentAction,FragmentRes
             fragmentList.size-1->reboot()
             else-> --viewPager.currentItem
         }
-
-
     }
 
 
 //Функция возврата списка с созданными фрагментами
-    fun getFragmentList():List<Fragment>{
+    private fun getFragmentList():List<Fragment>{
         return     listOf(
             FragmentQuiz.newInstance(1, QuestionsBase.questions[0],R.style.Theme_Quiz_First),
             FragmentQuiz.newInstance(2, QuestionsBase.questions[1], R.style.Theme_Quiz_Second),
@@ -110,19 +106,19 @@ class MainActivity : AppCompatActivity(),FragmentQuiz.FragmentAction,FragmentRes
 //Реализуем логику кнопки previous
     override fun previousAction() {
         --viewPager.currentItem
-
     }
 //Меняем цвет статус бара
-    fun changeStatusBarColor(fragment:Fragment,page:Int){
-        val fragmentQuiz= fragmentList[page]
-        if(fragmentQuiz is FragmentQuiz) {
+//Меняем цвет статус бара
+fun changeStatusBarColor(page:Int){
+    val fragmentQuiz= fragmentList[page]
+    if(fragmentQuiz is FragmentQuiz) {
+        fragmentQuiz.updateStatusBar()
+    }else
+        if(fragmentQuiz is FragmentResult){
             fragmentQuiz.updateStatusBar()
-        }else
-            if(fragmentQuiz is FragmentResult){
-                fragmentQuiz.updateStatusBar()
-            }
+        }
 
-    }
+}
 //Реализуем логику после нажатия кнопки submit:  в функцию передаем ответы и переходим к старнице
     //с результатам обновив textView с результатом
     override fun submitAction(answer:Pair<String,Int>) {
@@ -148,21 +144,23 @@ class MainActivity : AppCompatActivity(),FragmentQuiz.FragmentAction,FragmentRes
         fragmentList= getFragmentList()
         viewPager.adapter = ViewPagerAdapter(this,fragmentList)
         viewPager.offscreenPageLimit=fragmentList.size
-        resultAnswers= arrayOf<Pair<String,Int>>("" to 0,"" to 0,"" to 0,"" to 0,"" to 0)
+        resultAnswers= arrayOf("" to 0,"" to 0,"" to 0,"" to 0,"" to 0)
         viewPager.currentItem=0
     }
 
     override fun sendMessage() {
 
         fun getBodyMessage(score:Int,questions:Array<Question>,answers: Array<Pair<String,Int>>):String {
-            val bodyMessage: StringBuilder = StringBuilder()
-            bodyMessage.appendLine("Your result:$resultScore %")
-            for ((index, question) in questions.withIndex()) {
-                bodyMessage.appendLine()
-                bodyMessage.appendLine("${index + 1})${question.textQuestion}")
-                bodyMessage.appendLine("Your answer: ${answers[index].first}")
+            return with (StringBuilder()){
+                appendLine("Your result:$score %")
+                for ((index, question) in questions.withIndex()) {
+                    appendLine()
+                    appendLine("${index + 1})${question.textQuestion}")
+                    appendLine("Your answer: ${answers[index].first}")
+                }
+                toString()
             }
-            return bodyMessage.toString()
+
         }
 
         val emailIntent = Intent(Intent.ACTION_SEND)
@@ -173,10 +171,5 @@ class MainActivity : AppCompatActivity(),FragmentQuiz.FragmentAction,FragmentRes
                                                     answers=resultAnswers))
         emailIntent.type = "text/plain"
         startActivity(emailIntent)
-
-
     }
-
-
-
 }

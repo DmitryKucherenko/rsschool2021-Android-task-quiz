@@ -33,7 +33,7 @@ class FragmentQuiz : Fragment() {
 
     override fun onAttach(context: Context) {
         if (context is FragmentAction) {
-        actionCallBack=context as FragmentAction}else {
+        actionCallBack=context}else {
             throw RuntimeException("$context must implement FragmentQuiz.FragmentAction")
         }
         super.onAttach(context)
@@ -77,7 +77,7 @@ class FragmentQuiz : Fragment() {
         binding.toolbar.title="Qestion $page"
         //если первая страница отключаем кнопку preivious и прячем иконку navigationIcon
         if(page==1){
-            previous?.isEnabled=false
+            previous.isEnabled=false
             binding.toolbar.navigationIcon=null
         }
         //Если старница с результатом, то меняем название кнопки на Submit
@@ -106,8 +106,8 @@ class FragmentQuiz : Fragment() {
         }
 
         //Если мы выбрали ответ разблокируем кнопку next
-        radioGroup.setOnCheckedChangeListener { group, checkedId ->
-            next?.isEnabled=true
+        radioGroup.setOnCheckedChangeListener { _, _ ->
+            next.isEnabled=true
         }
         super.onViewCreated(view, savedInstanceState)
     }
