@@ -54,7 +54,7 @@ class MainActivity : AppCompatActivity(), FragmentQuiz.FragmentAction,
             .setMessage("Do your want out from quiz?")
             .setPositiveButton(android.R.string.ok) { _, _ ->
                 finish()
-                exitProcess(0)
+                System.exit(0)
             }
             .setNegativeButton(android.R.string.cancel) { _, _ ->
             }
