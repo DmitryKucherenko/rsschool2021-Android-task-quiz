@@ -16,51 +16,54 @@ import java.lang.IllegalArgumentException
 import java.lang.StringBuilder
 import kotlin.system.exitProcess
 
+
 //Использую viewPager2
 class MainActivity : AppCompatActivity(), FragmentQuiz.FragmentAction,
     FragmentResult.FragmentResultAction {
-    private lateinit var binding: ActivityMainBinding
+    private  var binding: ActivityMainBinding?=null
     private lateinit var viewPager: ViewPager2
-    private lateinit var resultAnswers: Array<Pair<String, Int>>
+    private  var resultAnswers= Array(5) {"" to 0}
     private var resultScore: Int = 0
-    private lateinit var fragmentList: List<Fragment>
+    private  lateinit var fragmentList: List<Fragment>
+    //присваиваем переменной функцию с диалогом
+    private var exitDialog:AlertDialog.Builder?=null
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         //привязываем binding
         binding = ActivityMainBinding.inflate(layoutInflater)
-        setContentView(binding.root)
-        viewPager = binding.viewPager
-        // отключаем переключение страниц пальцем
-        viewPager.isUserInputEnabled = false
+        setContentView(binding?.root)
         fragmentList = getFragmentList()
-        viewPager.adapter = ViewPagerAdapter(this, fragmentList)
-        viewPager.offscreenPageLimit = fragmentList.size
+        viewPager = requireNotNull(binding?.viewPager)
+        // отключаем переключение страниц пальцем
+        viewPager.also {
+            it.isUserInputEnabled = false
+            it.adapter = ViewPagerAdapter(this, fragmentList)
+            it.offscreenPageLimit = fragmentList.size
 
-        viewPager.registerOnPageChangeCallback(object : ViewPager2.OnPageChangeCallback() {
-            override fun onPageSelected(position: Int) {
-                changeStatusBarColor(position)
-                super.onPageSelected(position)
+            it.registerOnPageChangeCallback(object : ViewPager2.OnPageChangeCallback() {
+                override fun onPageSelected(position: Int) {
+                    changeStatusBarColor(position)
+                    super.onPageSelected(position)
+                }
+            })
+        }
+        exitDialog=AlertDialog.Builder(this)
+            .setMessage("Do your want out from quiz?")
+            .setPositiveButton(android.R.string.ok) { _, _ ->
+                finish()
+                exitProcess(0)
             }
-        })
-        resultAnswers = arrayOf("" to 0, "" to 0, "" to 0, "" to 0, "" to 0)
+            .setNegativeButton(android.R.string.cancel) { _, _ ->
+            }
+        resultAnswers =  Array(5) {"" to 0}
     }
 
     //Логика нажатия системной кнопки back
     override fun onBackPressed() {
-        //присваиваем переменной функцию с диалогом
-        val exitDialog = AlertDialog.Builder(this)
-            .setMessage("Do your want out from quiz?")
-            .setPositiveButton(android.R.string.ok) { _, _ ->
-                finish()
-                System.exit(0)
-            }
-            .setNegativeButton(android.R.string.cancel) { _, _ ->
-            }
-
         when (viewPager.currentItem) {
-            0 -> exitDialog.show()
+            0 -> exitDialog?.show()
             fragmentList.size - 1 -> reboot()
             else -> --viewPager.currentItem
         }
@@ -79,7 +82,7 @@ class MainActivity : AppCompatActivity(), FragmentQuiz.FragmentAction,
     }
 
     //внутрений класс ViewPagerAdapter для viewPager2
-    inner class ViewPagerAdapter(fa: FragmentActivity, var fragmentList: List<Fragment>) :
+    private inner class ViewPagerAdapter(fa: FragmentActivity, var fragmentList: List<Fragment>) :
         FragmentStateAdapter(fa) {
         //перегружаем функцию возвата количества страниц
         override fun getItemCount(): Int {
@@ -112,7 +115,6 @@ class MainActivity : AppCompatActivity(), FragmentQuiz.FragmentAction,
     }
 
     //Меняем цвет статус бара
-//Меняем цвет статус бара
     fun changeStatusBarColor(page: Int) {
         val fragmentQuiz = fragmentList[page]
         if (fragmentQuiz is FragmentQuiz) {
@@ -147,14 +149,18 @@ class MainActivity : AppCompatActivity(), FragmentQuiz.FragmentAction,
     //Начинаем Quiz заново. Персоздаем фрагменты и обнуляем массив с результатами
     override fun reboot() {
         fragmentList = getFragmentList()
-        viewPager.adapter = ViewPagerAdapter(this, fragmentList)
-        viewPager.offscreenPageLimit = fragmentList.size
-        resultAnswers = arrayOf("" to 0, "" to 0, "" to 0, "" to 0, "" to 0)
-        viewPager.currentItem = 0
+
+        viewPager.also {
+            it.adapter = ViewPagerAdapter(this, fragmentList)
+            it.offscreenPageLimit = fragmentList.size
+            it.currentItem = 0}
+
+        resultAnswers =  Array(5) {"" to 0}
     }
 
+    //функция отправки результатов
     override fun sendMessage() {
-
+        //внутреняя функция формирующая текст письма
         fun getBodyMessage(
             score: Int,
             questions: Array<Question>,
@@ -171,18 +177,17 @@ class MainActivity : AppCompatActivity(), FragmentQuiz.FragmentAction,
             }
 
         }
-
-        val emailIntent = Intent(Intent.ACTION_SEND)
-        emailIntent.putExtra(Intent.EXTRA_SUBJECT, "Quiz results")
-        emailIntent.putExtra(
-            Intent.EXTRA_TEXT,
-            getBodyMessage(
-                score = resultScore,
-                questions = QuestionsBase.questions,
-                answers = resultAnswers
+//Создаем неявный интент. Фомируем заголовок письма и текст
+        val emailIntent = Intent(Intent.ACTION_SEND).apply {
+            putExtra(Intent.EXTRA_SUBJECT, "Quiz results")
+            putExtra(
+                Intent.EXTRA_TEXT,
+                getBodyMessage(score = resultScore,
+                    questions = QuestionsBase.questions, answers = resultAnswers)
             )
-        )
-        emailIntent.type = "text/plain"
+            type = "text/plain"
+        }
+        //передаем интент
         startActivity(emailIntent)
     }
 }

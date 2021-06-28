@@ -6,6 +6,7 @@ import android.util.TypedValue
 import android.view.*
 import android.widget.RadioButton
 import androidx.core.content.ContextCompat
+import androidx.core.os.bundleOf
 import androidx.fragment.app.Fragment
 import com.rsschool.question.Question
 import com.rsschool.quiz.databinding.FragmentQuizBinding
@@ -20,6 +21,7 @@ class FragmentQuiz : Fragment() {
     private var theme: Int = 0
     private var _binding: FragmentQuizBinding? = null
     private val binding get() = requireNotNull(_binding)
+    private var index:Int=-1
 
     //интерфейс для вызова действия для next, previous и submit кнопок
     private var actionCallBack: FragmentAction? = null
@@ -91,12 +93,25 @@ class FragmentQuiz : Fragment() {
 
         binding.toolbar.setNavigationOnClickListener { actionCallBack?.previousAction() }
 
+        //Если мы выбрали ответ разблокируем кнопку next
+        //и запомним index ответа по нажатой кнопке radioButtion
+        radioGroup.setOnCheckedChangeListener { _, id ->
+            next.isEnabled = true
+            index = when(id) {
+                R.id.option_one -> 0
+                R.id.option_two -> 1
+                R.id.option_three ->2
+                R.id.option_four -> 3
+                R.id.option_five -> 4
+                else -> -1
+            }
+        }
+
         previous.setOnClickListener { actionCallBack?.previousAction() }
 
+
+
         next.setOnClickListener {
-            val checkedId: Int = radioGroup.checkedRadioButtonId
-            val radioButton = view.findViewById<RadioButton>(checkedId)
-            val index = radioGroup.indexOfChild(radioButton)
             if (page == pageCount - 1) actionCallBack?.submitAction(question.answers[index]) else
                 actionCallBack?.nextAction(question.answers[index])
         }
@@ -110,23 +125,14 @@ class FragmentQuiz : Fragment() {
             }
         }
 
-        //Если мы выбрали ответ разблокируем кнопку next
-        radioGroup.setOnCheckedChangeListener { _, _ ->
-            next.isEnabled = true
-        }
         super.onViewCreated(view, savedInstanceState)
     }
 
     companion object {
         fun newInstance(page: Int, question: Question, theme: Int): FragmentQuiz {
             val fragment = FragmentQuiz()
-            val args = Bundle()
-            //Передаем id Темы
-            args.putInt(THEME, theme)
-            //Передаем страницу
-            args.putInt(PAGE, page)
-            //Передаем ответы
-            args.putSerializable(QUESTION, question as Serializable)
+            //Передаем id Темы, страницу и вопросы
+            val args = bundleOf(THEME to theme, PAGE to page, QUESTION to question)
             fragment.arguments = args
             return fragment
         }
@@ -135,7 +141,7 @@ class FragmentQuiz : Fragment() {
         private const val THEME = "THEME"
         private const val QUESTION = "QUESTION"
     }
-//Зануляем binding
+    //Зануляем binding
     override fun onDestroyView() {
         _binding = null
         super.onDestroyView()

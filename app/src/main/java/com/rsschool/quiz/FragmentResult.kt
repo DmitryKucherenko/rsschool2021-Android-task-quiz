@@ -5,6 +5,7 @@ import android.os.Bundle
 import android.util.TypedValue
 import android.view.*
 import androidx.core.content.ContextCompat
+import androidx.core.os.bundleOf
 import androidx.fragment.app.Fragment
 import com.rsschool.quiz.databinding.FragmentResultBinding
 
@@ -84,9 +85,7 @@ class FragmentResult : Fragment() {
     companion object {
         fun newInstance(result: Int, theme: Int): FragmentResult {
             val fragment = FragmentResult()
-            val args = Bundle()
-            args.putInt(THEME, theme)
-            args.putInt(RESULT, result)
+            val args = bundleOf(THEME to theme,RESULT to result)
             fragment.arguments = args
             return fragment
         }
